@@ -14,6 +14,10 @@ defmodule BccmDashboardWeb.DashboardLiveTest do
   """
   use BccmDashboardWeb.ConnCase, async: false
 
+  import Cerberus
+  import Cerberus.Expect
+  import Cerberus.Locator
+
   # The error-path tests make the pollers log a failed fetch on purpose.
   @moduletag :capture_log
 
@@ -27,7 +31,7 @@ defmodule BccmDashboardWeb.DashboardLiveTest do
     # The pollers fetch from their own processes (and Semaphore fans out to
     # Tasks), so ownership has to be shared rather than tied to the test pid.
     Req.Test.set_req_test_to_shared(context)
-    :ok
+    Cerberus.Test.setup(context)
   end
 
   describe "build pipelines section" do
@@ -43,11 +47,17 @@ defmodule BccmDashboardWeb.DashboardLiveTest do
       stub_gatus([])
       start_pollers()
 
-      conn
+      start_session(:phoenix, conn: conn)
       |> visit(~p"/")
-      |> assert_has("#section-build_pipelines h3", at: 1, text: "zulu")
-      |> assert_has("#section-build_pipelines h3", at: 2, text: "mike")
-      |> assert_has("#section-build_pipelines h3", at: 3, text: "alpha")
+      |> expect(
+        visible(by_css("#section-build_pipelines h3") |> nth(0) |> filter(has_text: "zulu"))
+      )
+      |> expect(
+        visible(by_css("#section-build_pipelines h3") |> nth(1) |> filter(has_text: "mike"))
+      )
+      |> expect(
+        visible(by_css("#section-build_pipelines h3") |> nth(2) |> filter(has_text: "alpha"))
+      )
     end
 
     test "a queued build doesn't outrank one that has actually run since", %{conn: conn} do
@@ -63,10 +73,14 @@ defmodule BccmDashboardWeb.DashboardLiveTest do
       stub_gatus([])
       start_pollers()
 
-      conn
+      start_session(:phoenix, conn: conn)
       |> visit(~p"/")
-      |> assert_has("#section-build_pipelines h3", at: 1, text: "ran")
-      |> assert_has("#section-build_pipelines h3", at: 2, text: "queued")
+      |> expect(
+        visible(by_css("#section-build_pipelines h3") |> nth(0) |> filter(has_text: "ran"))
+      )
+      |> expect(
+        visible(by_css("#section-build_pipelines h3") |> nth(1) |> filter(has_text: "queued"))
+      )
     end
 
     test "a project with no runs in the window sorts last", %{conn: conn} do
@@ -78,10 +92,14 @@ defmodule BccmDashboardWeb.DashboardLiveTest do
       stub_gatus([])
       start_pollers()
 
-      conn
+      start_session(:phoenix, conn: conn)
       |> visit(~p"/")
-      |> assert_has("#section-build_pipelines h3", at: 1, text: "zzz-active")
-      |> assert_has("#section-build_pipelines h3", at: 2, text: "aaa-idle")
+      |> expect(
+        visible(by_css("#section-build_pipelines h3") |> nth(0) |> filter(has_text: "zzz-active"))
+      )
+      |> expect(
+        visible(by_css("#section-build_pipelines h3") |> nth(1) |> filter(has_text: "aaa-idle"))
+      )
     end
 
     test "a failing pipeline renders as failed and shows the red viewport border", %{conn: conn} do
@@ -92,11 +110,11 @@ defmodule BccmDashboardWeb.DashboardLiveTest do
       stub_gatus([])
       start_pollers()
 
-      session = visit(conn, ~p"/")
+      session = start_session(:phoenix, conn: conn) |> visit(~p"/")
 
       session
-      |> assert_has("#item-broken", text: "FAILED")
-      |> assert_has("[aria-hidden='true'].border-semantic-error")
+      |> expect(visible(by_css("#item-broken") |> filter(has_text: "FAILED")))
+      |> expect(count(by_css("[aria-hidden='true'].border-semantic-error"), 1))
     end
   end
 
@@ -112,11 +130,17 @@ defmodule BccmDashboardWeb.DashboardLiveTest do
 
       start_pollers()
 
-      conn
+      start_session(:phoenix, conn: conn)
       |> visit(~p"/")
-      |> assert_has("#section-service_health h3", at: 1, text: "alpha")
-      |> assert_has("#section-service_health h3", at: 2, text: "mid")
-      |> assert_has("#section-service_health h3", at: 3, text: "zeta")
+      |> expect(
+        visible(by_css("#section-service_health h3") |> nth(0) |> filter(has_text: "alpha"))
+      )
+      |> expect(
+        visible(by_css("#section-service_health h3") |> nth(1) |> filter(has_text: "mid"))
+      )
+      |> expect(
+        visible(by_css("#section-service_health h3") |> nth(2) |> filter(has_text: "zeta"))
+      )
     end
 
     test "a down endpoint renders as down", %{conn: conn} do
@@ -124,10 +148,10 @@ defmodule BccmDashboardWeb.DashboardLiveTest do
       stub_gatus([endpoint("api", success: false, error: "connection refused")])
       start_pollers()
 
-      conn
+      start_session(:phoenix, conn: conn)
       |> visit(~p"/")
-      |> assert_has("#item-api", text: "DOWN")
-      |> assert_has("#item-api", text: "connection refused")
+      |> expect(visible(by_css("#item-api") |> filter(has_text: "DOWN")))
+      |> expect(visible(by_css("#item-api") |> filter(has_text: "connection refused")))
     end
   end
 
@@ -138,15 +162,15 @@ defmodule BccmDashboardWeb.DashboardLiveTest do
       start_pollers()
 
       session =
-        conn
+        start_session(:phoenix, conn: conn)
         |> visit(~p"/")
-        |> assert_has("h2", text: "Build pipelines")
-        |> assert_has("h2", text: "Service health")
+        |> expect(visible(by_css("h2") |> filter(has_text: "Build pipelines")))
+        |> expect(visible(by_css("h2") |> filter(has_text: "Service health")))
 
       # The footer is omitted entirely when the sha can't be resolved, so only
       # assert on it when this build actually has one.
       if sha = BccmDashboard.BuildInfo.short_sha() do
-        assert_has(session, "[aria-label='Build commit']", text: sha)
+        expect(session, visible(by_css("[aria-label='Build commit']") |> filter(has_text: sha)))
       end
     end
 
@@ -155,9 +179,9 @@ defmodule BccmDashboardWeb.DashboardLiveTest do
       stub_gatus([])
       start_pollers()
 
-      conn
+      start_session(:phoenix, conn: conn)
       |> visit(~p"/")
-      |> assert_has("#section-build_pipelines", text: "No items")
+      |> expect(visible(by_css("#section-build_pipelines") |> filter(has_text: "No items")))
     end
 
     test "a failing source surfaces the fetch error instead of the whole page dying", %{
@@ -167,10 +191,15 @@ defmodule BccmDashboardWeb.DashboardLiveTest do
       stub_gatus([])
       start_pollers()
 
-      conn
+      start_session(:phoenix, conn: conn)
       |> visit(~p"/")
-      |> assert_has("#section-build_pipelines", text: "Couldn't reach Semaphore")
-      |> assert_has("h2", text: "Service health")
+      |> expect(
+        visible(
+          by_css("#section-build_pipelines")
+          |> filter(has_text: "Couldn't reach Semaphore")
+        )
+      )
+      |> expect(visible(by_css("h2") |> filter(has_text: "Service health")))
     end
   end
 
@@ -185,9 +214,11 @@ defmodule BccmDashboardWeb.DashboardLiveTest do
       start_pollers()
 
       session =
-        conn
+        start_session(:phoenix, conn: conn)
         |> visit(~p"/")
-        |> assert_has("#section-build_pipelines h3", at: 1, text: "first")
+        |> expect(
+          visible(by_css("#section-build_pipelines h3") |> nth(0) |> filter(has_text: "first"))
+        )
 
       # "second" now has the most recent run. The poller broadcasts on refresh
       # and the LiveView re-renders from the new snapshot.
@@ -203,7 +234,10 @@ defmodule BccmDashboardWeb.DashboardLiveTest do
       # will be handled before it answers the render.
       _ = Semaphore.Poller.snapshot()
 
-      assert_has(session, "#section-build_pipelines h3", at: 1, text: "second")
+      expect(
+        session,
+        visible(by_css("#section-build_pipelines h3") |> nth(0) |> filter(has_text: "second"))
+      )
     end
   end
 

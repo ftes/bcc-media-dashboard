@@ -19,8 +19,7 @@ config :bccm_dashboard, BccmDashboard.Gatus.Client,
   base_url: "http://gatus.test",
   req_options: [plug: {Req.Test, BccmDashboard.Gatus.Client}, retry: false]
 
-# PhoenixTest needs to know which endpoint to route through.
-config :phoenix_test, :endpoint, BccmDashboardWeb.Endpoint
+config :cerberus, endpoint: BccmDashboardWeb.Endpoint
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
