@@ -14,9 +14,9 @@ defmodule BccmDashboardWeb.DashboardLiveTest do
   """
   use BccmDashboardWeb.ConnCase, async: false
 
-  import Cerberus
-  import Cerberus.Expect
-  import Cerberus.Locator
+  import Fluffy
+  import Fluffy.Expect
+  import Fluffy.Locator
 
   # The error-path tests make the pollers log a failed fetch on purpose.
   @moduletag :capture_log
@@ -31,7 +31,7 @@ defmodule BccmDashboardWeb.DashboardLiveTest do
     # The pollers fetch from their own processes (and Semaphore fans out to
     # Tasks), so ownership has to be shared rather than tied to the test pid.
     Req.Test.set_req_test_to_shared(context)
-    Cerberus.Test.setup(context)
+    Fluffy.Test.setup(context)
   end
 
   describe "build pipelines section" do
