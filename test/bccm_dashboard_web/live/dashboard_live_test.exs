@@ -15,7 +15,7 @@ defmodule BccmDashboardWeb.DashboardLiveTest do
   use BccmDashboardWeb.ConnCase, async: false
 
   import Fluffy
-  import Fluffy.Expect
+  use Fluffy.Assert
   import Fluffy.Locator
 
   # The error-path tests make the pollers log a failed fetch on purpose.
@@ -49,13 +49,13 @@ defmodule BccmDashboardWeb.DashboardLiveTest do
 
       start_session(:phoenix, conn: conn)
       |> visit(~p"/")
-      |> expect(
+      |> assert(
         visible(by_css("#section-build_pipelines h3") |> nth(0) |> filter(has_text: "zulu"))
       )
-      |> expect(
+      |> assert(
         visible(by_css("#section-build_pipelines h3") |> nth(1) |> filter(has_text: "mike"))
       )
-      |> expect(
+      |> assert(
         visible(by_css("#section-build_pipelines h3") |> nth(2) |> filter(has_text: "alpha"))
       )
     end
@@ -75,10 +75,10 @@ defmodule BccmDashboardWeb.DashboardLiveTest do
 
       start_session(:phoenix, conn: conn)
       |> visit(~p"/")
-      |> expect(
+      |> assert(
         visible(by_css("#section-build_pipelines h3") |> nth(0) |> filter(has_text: "ran"))
       )
-      |> expect(
+      |> assert(
         visible(by_css("#section-build_pipelines h3") |> nth(1) |> filter(has_text: "queued"))
       )
     end
@@ -94,10 +94,10 @@ defmodule BccmDashboardWeb.DashboardLiveTest do
 
       start_session(:phoenix, conn: conn)
       |> visit(~p"/")
-      |> expect(
+      |> assert(
         visible(by_css("#section-build_pipelines h3") |> nth(0) |> filter(has_text: "zzz-active"))
       )
-      |> expect(
+      |> assert(
         visible(by_css("#section-build_pipelines h3") |> nth(1) |> filter(has_text: "aaa-idle"))
       )
     end
@@ -113,8 +113,8 @@ defmodule BccmDashboardWeb.DashboardLiveTest do
       session = start_session(:phoenix, conn: conn) |> visit(~p"/")
 
       session
-      |> expect(visible(by_css("#item-broken") |> filter(has_text: "FAILED")))
-      |> expect(count(by_css("[aria-hidden='true'].border-semantic-error"), 1))
+      |> assert(visible(by_css("#item-broken") |> filter(has_text: "FAILED")))
+      |> assert(count(by_css("[aria-hidden='true'].border-semantic-error"), 1))
     end
   end
 
@@ -132,13 +132,13 @@ defmodule BccmDashboardWeb.DashboardLiveTest do
 
       start_session(:phoenix, conn: conn)
       |> visit(~p"/")
-      |> expect(
+      |> assert(
         visible(by_css("#section-service_health h3") |> nth(0) |> filter(has_text: "alpha"))
       )
-      |> expect(
+      |> assert(
         visible(by_css("#section-service_health h3") |> nth(1) |> filter(has_text: "mid"))
       )
-      |> expect(
+      |> assert(
         visible(by_css("#section-service_health h3") |> nth(2) |> filter(has_text: "zeta"))
       )
     end
@@ -150,8 +150,8 @@ defmodule BccmDashboardWeb.DashboardLiveTest do
 
       start_session(:phoenix, conn: conn)
       |> visit(~p"/")
-      |> expect(visible(by_css("#item-api") |> filter(has_text: "DOWN")))
-      |> expect(visible(by_css("#item-api") |> filter(has_text: "connection refused")))
+      |> assert(visible(by_css("#item-api") |> filter(has_text: "DOWN")))
+      |> assert(visible(by_css("#item-api") |> filter(has_text: "connection refused")))
     end
   end
 
@@ -164,13 +164,13 @@ defmodule BccmDashboardWeb.DashboardLiveTest do
       session =
         start_session(:phoenix, conn: conn)
         |> visit(~p"/")
-        |> expect(visible(by_css("h2") |> filter(has_text: "Build pipelines")))
-        |> expect(visible(by_css("h2") |> filter(has_text: "Service health")))
+        |> assert(visible(by_css("h2") |> filter(has_text: "Build pipelines")))
+        |> assert(visible(by_css("h2") |> filter(has_text: "Service health")))
 
       # The footer is omitted entirely when the sha can't be resolved, so only
       # assert on it when this build actually has one.
       if sha = BccmDashboard.BuildInfo.short_sha() do
-        expect(session, visible(by_css("[aria-label='Build commit']") |> filter(has_text: sha)))
+        assert(session, visible(by_css("[aria-label='Build commit']") |> filter(has_text: sha)))
       end
     end
 
@@ -181,7 +181,7 @@ defmodule BccmDashboardWeb.DashboardLiveTest do
 
       start_session(:phoenix, conn: conn)
       |> visit(~p"/")
-      |> expect(visible(by_css("#section-build_pipelines") |> filter(has_text: "No items")))
+      |> assert(visible(by_css("#section-build_pipelines") |> filter(has_text: "No items")))
     end
 
     test "a failing source surfaces the fetch error instead of the whole page dying", %{
@@ -193,13 +193,13 @@ defmodule BccmDashboardWeb.DashboardLiveTest do
 
       start_session(:phoenix, conn: conn)
       |> visit(~p"/")
-      |> expect(
+      |> assert(
         visible(
           by_css("#section-build_pipelines")
           |> filter(has_text: "Couldn't reach Semaphore")
         )
       )
-      |> expect(visible(by_css("h2") |> filter(has_text: "Service health")))
+      |> assert(visible(by_css("h2") |> filter(has_text: "Service health")))
     end
   end
 
@@ -216,7 +216,7 @@ defmodule BccmDashboardWeb.DashboardLiveTest do
       session =
         start_session(:phoenix, conn: conn)
         |> visit(~p"/")
-        |> expect(
+        |> assert(
           visible(by_css("#section-build_pipelines h3") |> nth(0) |> filter(has_text: "first"))
         )
 
@@ -234,7 +234,7 @@ defmodule BccmDashboardWeb.DashboardLiveTest do
       # will be handled before it answers the render.
       _ = Semaphore.Poller.snapshot()
 
-      expect(
+      assert(
         session,
         visible(by_css("#section-build_pipelines h3") |> nth(0) |> filter(has_text: "second"))
       )
